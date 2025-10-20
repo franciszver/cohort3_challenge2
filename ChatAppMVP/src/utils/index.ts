@@ -237,11 +237,6 @@ export const getFirstError = (errors: Record<string, string | null>): string | n
   return null;
 };
 
-// ID generation utility
-export const generateUniqueId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-};
-
 // Async utilities  
 export const delay = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));

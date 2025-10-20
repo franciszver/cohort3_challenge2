@@ -1,0 +1,73 @@
+#!/bin/sh
+# =============================================================================
+# STRICT PRE-COMMIT VALIDATION - AI AGENT SAFETY CRITICAL
+# =============================================================================
+# This hook prevents ANY commits when tests are failing
+# ZERO tolerance policy for broken code
+
+echo "🧪 Running mandatory pre-commit validation..."
+echo "🤖 AI SAFETY: This hook blocks commits with ANY test failures"
+echo ""
+
+# Run TypeScript compilation check
+echo "📝 Checking TypeScript compilation..."
+npx tsc --noEmit --pretty false > ts-results.log 2>&1
+TS_EXIT_CODE=$?
+
+if [ $TS_EXIT_CODE -ne 0 ]; then
+  echo "❌ COMMIT BLOCKED: TypeScript compilation failed"
+  echo ""
+  echo "🔍 TypeScript Errors:"
+  cat ts-results.log
+  echo ""
+  echo "📋 Resolution Options:"
+  echo "  1. Fix TypeScript errors (recommended)"
+  echo "  2. Check ts-results.log for details"
+  echo "  3. Use --no-verify to bypass (NOT recommended for AI agents)"
+  echo ""
+  echo "⚠️  AI AGENTS: This commit is BLOCKED until TypeScript passes"
+  rm -f ts-results.log
+  exit 1
+fi
+
+# Count total tests and run them
+echo "🧪 Running test suite..."
+TOTAL_TESTS=$(npm test -- --listTests --json 2>/dev/null | jq length 2>/dev/null || echo "unknown")
+npm run test:ci --silent > test-results.log 2>&1
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  FAILED_COUNT=$(grep -c "FAIL\|✕\|Failed" test-results.log 2>/dev/null || echo "unknown")
+  
+  echo ""
+  echo "❌ COMMIT BLOCKED: Tests are failing"
+  echo "📊 Test Status: Failed tests detected (${FAILED_COUNT} failures)"
+  echo "📊 Total tests: ${TOTAL_TESTS}"
+  echo ""
+  echo "🔍 Test Failure Details:"
+  grep -A 5 -B 2 "FAIL\|✕\|Error" test-results.log 2>/dev/null | head -20
+  echo ""
+  echo "📋 Resolution Options:"
+  echo "  1. Fix failing tests (REQUIRED for AI agents)"
+  echo "  2. Run: npm test (for detailed output)"
+  echo "  3. View: cat test-results.log (full results)"
+  echo "  4. Use: git commit --no-verify (requires human approval)"
+  echo ""
+  echo "⚠️  CRITICAL: AI AGENTS MUST NOT COMMIT WITH FAILING TESTS"
+  echo "⚠️  This is a safety mechanism to prevent broken code"
+  echo ""
+  rm -f test-results.log ts-results.log
+  exit 1
+fi
+
+# All checks passed
+echo "✅ TypeScript compilation: PASSED"
+echo "✅ Test suite: PASSED (${TOTAL_TESTS} tests)"
+echo "✅ All pre-commit validations: PASSED"
+echo ""
+echo "🚀 Commit approved - all safety checks passed!"
+
+# Cleanup
+rm -f test-results.log ts-results.log
+exit 0
+npm run test:ci
