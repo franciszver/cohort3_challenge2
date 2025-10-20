@@ -1,15 +1,25 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# -------------------------
+# Dependencies
+# -------------------------
 node_modules/
 
-# Expo
+# -------------------------
+# Expo / React Native
+# -------------------------
 .expo/
+.expo-shared/
+.expo-cache/
+.expo-dev-cache/
 dist/
 web-build/
 expo-env.d.ts
+*.expo
 
-# Native
+# -------------------------
+# Native / Platform-specific
+# -------------------------
 .kotlin/
 *.orig.*
 *.jks
@@ -17,31 +27,46 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
 /ios
 /android
 
+# -------------------------
+# Metro Bundler
+# -------------------------
+.metro-health-check*
+.cache/
+
+# -------------------------
+# Debug / Logs
+# -------------------------
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# -------------------------
+# macOS / OS-specific
+# -------------------------
+.DS_Store
+Thumbs.db
+*.pem
+
+# -------------------------
+# Local environment files
+# -------------------------
+.env
+.env*.local
+
+# -------------------------
+# TypeScript
+# -------------------------
+*.tsbuildinfo
+
+# -------------------------
+# AWS Amplify (auto-generated / local-only)
+# -------------------------
 #amplify-do-not-edit-begin
-amplify/\#current-cloud-backend
+amplify/#current-cloud-backend
 amplify/.config/local-*
 amplify/logs
 amplify/mock-data
@@ -49,8 +74,6 @@ amplify/mock-api-resources
 amplify/backend/amplify-meta.json
 amplify/backend/.temp
 build/
-dist/
-node_modules/
 aws-exports.js
 awsconfiguration.json
 amplifyconfiguration.json
@@ -61,3 +84,19 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+# -------------------------
+# IDE / Editor
+# -------------------------
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# -------------------------
+# CursorAI (local rules/configs)
+# -------------------------
+.cursorrules/
+.cursorrules.*
+.cursorrules-cache/
