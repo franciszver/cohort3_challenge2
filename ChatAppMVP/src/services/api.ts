@@ -1,5 +1,5 @@
 // GraphQL API service using AWS AppSync
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
 import { Message, Conversation, PaginatedResponse } from '../types';
 
 export class ApiService {

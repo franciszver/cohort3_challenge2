@@ -1,14 +1,8 @@
 // Subscription Service - handles real-time GraphQL subscriptions
-import { API, graphqlOperation } from 'aws-amplify';
-import { GraphQLResult, GRAPHQL_AUTH_MODE } from '@aws-amplify/api';
+import { generateClient } from 'aws-amplify/api';
+import { GraphQLResult } from '@aws-amplify/api-graphql';
 import { Message, Conversation } from '../types';
-import { 
-  onCreateMessage, 
-  onUpdateMessage, 
-  onDeleteMessage,
-  onCreateConversation,
-  onUpdateConversation,
-} from '../graphql/subscriptions';
+import * as subscriptions from '../graphql/subscriptions';
 
 export type MessageSubscriptionCallback = (message: Message) => void;
 export type ConversationSubscriptionCallback = (conversation: Conversation) => void;
@@ -32,36 +26,33 @@ class SubscriptionService {
     const subscriptionId = `newMessages-${conversationId}-${Date.now()}`;
 
     try {
-      const subscription = API.graphql(
-        graphqlOperation(onCreateMessage, {
+      const client = generateClient();
+      const observer = client.graphql({
+        query: subscriptions.onCreateMessage,
+        variables: {
           filter: {
             conversationId: { eq: conversationId }
           }
-        })
-      ) as any;
-
-      // Listen for subscription updates
-      if (subscription?.subscribe) {
-        const observer = subscription.subscribe({
-          next: (result: any) => {
-            try {
-              const newMessage = result?.value?.data?.onCreateMessage;
-              if (newMessage) {
-                const mappedMessage = SubscriptionService.mapGraphQLMessageToMessage(newMessage);
-                console.log('🔔 New message received via subscription:', mappedMessage.id);
-                callback(mappedMessage);
-              }
-            } catch (error) {
-              console.error('Error processing new message subscription:', error);
+        }
+      }).subscribe({
+        next: ({ data }: any) => {
+          try {
+            const newMessage = data?.onCreateMessage;
+            if (newMessage) {
+              const mappedMessage = SubscriptionService.mapGraphQLMessageToMessage(newMessage);
+              console.log('🔔 New message received via subscription:', mappedMessage.id);
+              callback(mappedMessage);
             }
-          },
-          error: (error: any) => {
-            console.error('Message subscription error:', error);
+          } catch (error) {
+            console.error('Error processing new message subscription:', error);
           }
-        });
+        },
+        error: (error: any) => {
+          console.error('Message subscription error:', error);
+        }
+      });
 
-        SubscriptionService.subscriptions.set(subscriptionId, observer);
-      }
+      SubscriptionService.subscriptions.set(subscriptionId, observer);
 
     } catch (error) {
       console.error('Error setting up message subscription:', error);
@@ -80,35 +71,33 @@ class SubscriptionService {
     const subscriptionId = `updateMessages-${conversationId}-${Date.now()}`;
 
     try {
-      const subscription = API.graphql(
-        graphqlOperation(onUpdateMessage, {
+      const client = generateClient();
+      const observer = client.graphql({
+        query: subscriptions.onUpdateMessage,
+        variables: {
           filter: {
             conversationId: { eq: conversationId }
           }
-        })
-      ) as any;
-
-      if (subscription?.subscribe) {
-        const observer = subscription.subscribe({
-          next: (result: any) => {
-            try {
-              const updatedMessage = result?.value?.data?.onUpdateMessage;
-              if (updatedMessage) {
-                const mappedMessage = SubscriptionService.mapGraphQLMessageToMessage(updatedMessage);
-                console.log('📝 Message updated via subscription:', mappedMessage.id);
-                callback(mappedMessage);
-              }
-            } catch (error) {
-              console.error('Error processing message update subscription:', error);
+        }
+      }).subscribe({
+        next: ({ data }: any) => {
+          try {
+            const updatedMessage = data?.onUpdateMessage;
+            if (updatedMessage) {
+              const mappedMessage = SubscriptionService.mapGraphQLMessageToMessage(updatedMessage);
+              console.log('📝 Message updated via subscription:', mappedMessage.id);
+              callback(mappedMessage);
             }
-          },
-          error: (error: any) => {
-            console.error('Message update subscription error:', error);
+          } catch (error) {
+            console.error('Error processing message update subscription:', error);
           }
-        });
+        },
+        error: (error: any) => {
+          console.error('Message update subscription error:', error);
+        }
+      });
 
-        SubscriptionService.subscriptions.set(subscriptionId, observer);
-      }
+      SubscriptionService.subscriptions.set(subscriptionId, observer);
 
     } catch (error) {
       console.error('Error setting up message update subscription:', error);
@@ -127,34 +116,32 @@ class SubscriptionService {
     const subscriptionId = `deleteMessages-${conversationId}-${Date.now()}`;
 
     try {
-      const subscription = API.graphql(
-        graphqlOperation(onDeleteMessage, {
+      const client = generateClient();
+      const observer = client.graphql({
+        query: subscriptions.onDeleteMessage,
+        variables: {
           filter: {
             conversationId: { eq: conversationId }
           }
-        })
-      ) as any;
-
-      if (subscription?.subscribe) {
-        const observer = subscription.subscribe({
-          next: (result: any) => {
-            try {
-              const deletedMessage = result?.value?.data?.onDeleteMessage;
-              if (deletedMessage?.id) {
-                console.log('🗑️ Message deleted via subscription:', deletedMessage.id);
-                callback(deletedMessage.id);
-              }
-            } catch (error) {
-              console.error('Error processing message deletion subscription:', error);
+        }
+      }).subscribe({
+        next: ({ data }: any) => {
+          try {
+            const deletedMessage = data?.onDeleteMessage;
+            if (deletedMessage?.id) {
+              console.log('🗑️ Message deleted via subscription:', deletedMessage.id);
+              callback(deletedMessage.id);
             }
-          },
-          error: (error: any) => {
-            console.error('Message deletion subscription error:', error);
+          } catch (error) {
+            console.error('Error processing message deletion subscription:', error);
           }
-        });
+        },
+        error: (error: any) => {
+          console.error('Message deletion subscription error:', error);
+        }
+      });
 
-        SubscriptionService.subscriptions.set(subscriptionId, observer);
-      }
+      SubscriptionService.subscriptions.set(subscriptionId, observer);
 
     } catch (error) {
       console.error('Error setting up message deletion subscription:', error);
@@ -173,35 +160,33 @@ class SubscriptionService {
     const subscriptionId = `conversationUpdates-${userId}-${Date.now()}`;
 
     try {
-      const subscription = API.graphql(
-        graphqlOperation(onUpdateConversation, {
+      const client = generateClient();
+      const observer = client.graphql({
+        query: subscriptions.onUpdateConversation,
+        variables: {
           filter: {
             participants: { contains: userId }
           }
-        })
-      ) as any;
-
-      if (subscription?.subscribe) {
-        const observer = subscription.subscribe({
-          next: (result: any) => {
-            try {
-              const updatedConversation = result?.value?.data?.onUpdateConversation;
-              if (updatedConversation) {
-                const mappedConversation = SubscriptionService.mapGraphQLConversationToConversation(updatedConversation);
-                console.log('🔄 Conversation updated via subscription:', mappedConversation.id);
-                callback(mappedConversation);
-              }
-            } catch (error) {
-              console.error('Error processing conversation update subscription:', error);
+        }
+      }).subscribe({
+        next: ({ data }: any) => {
+          try {
+            const updatedConversation = data?.onUpdateConversation;
+            if (updatedConversation) {
+              const mappedConversation = SubscriptionService.mapGraphQLConversationToConversation(updatedConversation);
+              console.log('🔄 Conversation updated via subscription:', mappedConversation.id);
+              callback(mappedConversation);
             }
-          },
-          error: (error: any) => {
-            console.error('Conversation subscription error:', error);
+          } catch (error) {
+            console.error('Error processing conversation update subscription:', error);
           }
-        });
+        },
+        error: (error: any) => {
+          console.error('Conversation subscription error:', error);
+        }
+      });
 
-        SubscriptionService.subscriptions.set(subscriptionId, observer);
-      }
+      SubscriptionService.subscriptions.set(subscriptionId, observer);
 
     } catch (error) {
       console.error('Error setting up conversation subscription:', error);
@@ -220,35 +205,33 @@ class SubscriptionService {
     const subscriptionId = `newConversations-${userId}-${Date.now()}`;
 
     try {
-      const subscription = API.graphql(
-        graphqlOperation(onCreateConversation, {
+      const client = generateClient();
+      const observer = client.graphql({
+        query: subscriptions.onCreateConversation,
+        variables: {
           filter: {
             participants: { contains: userId }
           }
-        })
-      ) as any;
-
-      if (subscription?.subscribe) {
-        const observer = subscription.subscribe({
-          next: (result: any) => {
-            try {
-              const newConversation = result?.value?.data?.onCreateConversation;
-              if (newConversation) {
-                const mappedConversation = SubscriptionService.mapGraphQLConversationToConversation(newConversation);
-                console.log('🆕 New conversation via subscription:', mappedConversation.id);
-                callback(mappedConversation);
-              }
-            } catch (error) {
-              console.error('Error processing new conversation subscription:', error);
+        }
+      }).subscribe({
+        next: ({ data }: any) => {
+          try {
+            const newConversation = data?.onCreateConversation;
+            if (newConversation) {
+              const mappedConversation = SubscriptionService.mapGraphQLConversationToConversation(newConversation);
+              console.log('🆕 New conversation via subscription:', mappedConversation.id);
+              callback(mappedConversation);
             }
-          },
-          error: (error: any) => {
-            console.error('New conversation subscription error:', error);
+          } catch (error) {
+            console.error('Error processing new conversation subscription:', error);
           }
-        });
+        },
+        error: (error: any) => {
+          console.error('New conversation subscription error:', error);
+        }
+      });
 
-        SubscriptionService.subscriptions.set(subscriptionId, observer);
-      }
+      SubscriptionService.subscriptions.set(subscriptionId, observer);
 
     } catch (error) {
       console.error('Error setting up new conversation subscription:', error);

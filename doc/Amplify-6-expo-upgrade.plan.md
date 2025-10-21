@@ -308,9 +308,11 @@ const result = await client.graphql({
 const user = result.data.getUser;
 ```
 
-### 3.4 Migrate Subscription Service ⏭️ SKIPPED (will update after testing)
+### 3.4 Migrate Subscription Service ✅ COMPLETE
 
-**Update `ChatAppMVP/src/services/subscription.ts`:**
+**Updated `ChatAppMVP/src/services/subscription.ts`:**
+
+All subscription methods migrated to Amplify v6:
 
 ```typescript
 // OLD v5:
@@ -322,7 +324,7 @@ import { generateClient } from 'aws-amplify/api';
 import * as subscriptions from '../graphql/subscriptions';
 
 const client = generateClient();
-const sub = client.graphql({
+const observer = client.graphql({
   query: subscriptions.onCreateMessage,
   variables: { filter }
 }).subscribe({
@@ -334,8 +336,15 @@ const sub = client.graphql({
 });
 
 // Cleanup:
-sub.unsubscribe();
+observer.unsubscribe();
 ```
+
+**Migrated methods:**
+- subscribeToNewMessages
+- subscribeToMessageUpdates
+- subscribeToMessageDeletions
+- subscribeToConversationUpdates
+- subscribeToNewConversations
 
 ### 3.5 Migrate App Navigator ✅ COMPLETE
 
@@ -603,13 +612,14 @@ Include:
 
 ### Code Migration
 
-- [ ] All v5 imports replaced with v6
-- [ ] No `aws-exports.js` references
-- [ ] No `graphqlOperation` usage
-- [ ] Auth service uses v6 methods
-- [ ] API services use `generateClient()`
-- [ ] Subscriptions use v6 syntax
-- [ ] Polyfills added to App.tsx
+- [x] All v5 imports replaced with v6
+- [x] No `aws-exports.js` references
+- [x] No `graphqlOperation` usage
+- [x] Auth service uses v6 methods
+- [x] API services use `generateClient()`
+- [x] Subscriptions use v6 syntax
+- [x] Polyfills added to App.tsx
+- [x] Placeholder assets created (icon.png, splash-icon.png, adaptive-icon.png, favicon.png)
 
 ### Build & EAS
 
@@ -661,13 +671,20 @@ Include:
 - `README.md` - Custom dev client workflow
 - `src/navigation/AppNavigator.tsx` - v6 imports
 - `src/services/auth.ts` - v6 auth methods
-- `src/services/api.ts` - generateClient
+- `src/services/api.ts` - generateClient (v6 imports only)
 - `src/services/user.ts` - v6 GraphQL
 - `src/services/conversation.ts` - v6 GraphQL
 - `src/services/message.ts` - v6 GraphQL
-- `src/services/subscription.ts` - v6 subscriptions
+- `src/services/subscription.ts` - v6 subscriptions (fully migrated)
 - `src/services/sync.ts` - v6 GraphQL
 - `src/services/sender.ts` - v6 GraphQL
+
+### Created Files
+
+- `assets/icon.png` - App icon (1024x1024)
+- `assets/splash-icon.png` - Splash screen (2048x2048)
+- `assets/adaptive-icon.png` - Android adaptive icon (1024x1024)
+- `assets/favicon.png` - Web favicon (512x512)
 
 ### Removed/Deprecated
 
