@@ -17,6 +17,7 @@ module.exports = {
           color: "#007AFF"
         }
       ],
+          "expo-asset",
       "expo-image-picker"
     ],
     extra: {
