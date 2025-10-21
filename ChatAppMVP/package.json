@@ -16,7 +16,7 @@
     "test:coverage": "jest --coverage --watchAll=false",
     "test:ci": "jest --ci --coverage --watchAll=false --verbose",
     "test:quick": "jest --passWithNoTests --silent",
-    "prepare": "husky install"
+    "prepare": "husky install || true"
   },
   "dependencies": {
     "@aws-amplify/api": "^6.3.19",
