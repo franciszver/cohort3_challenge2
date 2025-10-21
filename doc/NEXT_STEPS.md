@@ -35,7 +35,7 @@ You need to extract your Amplify backend values. **Choose ONE option:**
 **Option B: Use Amplify CLI** (if backend is pulled)
 ```powershell
 cd ChatAppMVP
-$env:AWS_PROFILE='ciscodg@gmail.com'
+$env:AWS_PROFILE='ciscodg@gmail'
 amplify pull
 # This will create aws-exports.js with all values
 ```
@@ -65,7 +65,7 @@ This generates the actual queries/mutations from your GraphQL schema:
 
 ```powershell
 cd ChatAppMVP
-$env:AWS_PROFILE='ciscodg@gmail.com'
+$env:AWS_PROFILE='ciscodg@gmail'
 
 # First time setup
 amplify codegen add

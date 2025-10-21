@@ -145,7 +145,7 @@ npm install -g eas-cli
 
 ```bash
 cd ChatAppMVP
-$env:AWS_PROFILE='ciscodg@gmail.com'
+$env:AWS_PROFILE='ciscodg@gmail'
 amplify status
 ```
 
@@ -192,7 +192,7 @@ export default amplifyConfig;
 
 ```bash
 cd ChatAppMVP
-$env:AWS_PROFILE='ciscodg@gmail.com'
+$env:AWS_PROFILE='ciscodg@gmail'
 amplify codegen add
 # Choose: TypeScript, Path: src/graphql, Max depth: 2
 amplify codegen
@@ -410,7 +410,7 @@ eas build:configure
 **USER ACTION REQUIRED:**
 
 ```bash
-$env:AWS_PROFILE='ciscodg@gmail.com'
+$env:AWS_PROFILE='ciscodg@gmail'
 npm run build:dev:android
 # Or: eas build --profile development --platform android
 

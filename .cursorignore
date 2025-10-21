@@ -37,6 +37,7 @@
 **/amplify/backend/amplify-meta.json
 **/amplify/backend/tags.json
 **/amplify/backend/backend-config.json
+**/amplify.old/**
 
 # Auto-generated GraphQL and model files
 **/src/graphql/mutations.js
