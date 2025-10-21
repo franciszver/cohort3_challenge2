@@ -1,18 +1,17 @@
-// Main App Navigator - handles authentication flow and main app navigation
+// Main App Navigator - handles authentication flow and main app navigation (Amplify v6)
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStatus, RootStackParamList } from './types';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
-import { Amplify, Auth, Hub } from 'aws-amplify';
-import awsconfig from '../aws-exports';
+import { Hub } from '@aws-amplify/core';
+import { getCurrentUser } from '@aws-amplify/auth';
 import LoadingScreen from '../components/common/LoadingScreen';
 import NetworkService from '../services/network';
 import AuthService from '../services/auth';
 
-// Configure Amplify
-Amplify.configure(awsconfig);
+// Note: Amplify.configure() is now done in App.tsx
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -45,7 +44,7 @@ export const AppNavigator: React.FC = () => {
 
   const checkAuthState = async () => {
     try {
-      await Auth.currentAuthenticatedUser();
+      await getCurrentUser();
       setAuthStatus('authenticated');
       initializeNetworkMonitoring(); // Start network monitoring if already authenticated
     } catch (error) {

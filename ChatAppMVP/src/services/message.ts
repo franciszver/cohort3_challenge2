@@ -1,11 +1,14 @@
-// Message Service - handles real-time messaging with GraphQL API and local caching
-import { API, graphqlOperation } from 'aws-amplify';
+// Message Service - handles real-time messaging with GraphQL API and local caching (Amplify v6)
+import { generateClient } from 'aws-amplify/api';
 import { GraphQLResult } from '@aws-amplify/api-graphql';
 import { Message, MessageType, Conversation } from '../types';
-import { createMessage, updateMessage, deleteMessage } from '../graphql/mutations';
-import { getMessage, listMessages, messagesByConversationIdAndCreatedAt, messagesBySenderIdAndCreatedAt } from '../graphql/queries';
+import * as mutations from '../graphql/mutations';
+import * as queries from '../graphql/queries';
 import { generateUniqueId } from '../utils';
 import CacheService from './cache';
+
+// Create GraphQL client
+const client = generateClient();
 
 export interface SendMessageInput {
   conversationId: string;
@@ -58,14 +61,15 @@ export class MessageService {
 
     try {
       // Try to send to server
-      const result = await API.graphql(
-        graphqlOperation(createMessage, { 
+      const result = await client.graphql({
+        query: mutations.createMessage,
+        variables: { 
           input: {
             ...messageInput,
             metadata: messageInput.metadata ? JSON.stringify(messageInput.metadata) : null,
           }
-        })
-      ) as GraphQLResult<{ createMessage: any }>;
+        }
+      }) as GraphQLResult<{ createMessage: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to send message');
@@ -125,14 +129,15 @@ export class MessageService {
       }
 
       // Fetch from server (either no cache or paginating)
-      const result = await API.graphql(
-        graphqlOperation(messagesByConversationIdAndCreatedAt, {
+      const result = await client.graphql({
+        query: queries.messagesByConversationIdAndCreatedAt,
+        variables: {
           conversationId: params.conversationId,
           sortDirection: 'ASC', // Oldest first for proper chat order
           limit: params.limit || 50,
           nextToken: params.nextToken,
-        })
-      ) as GraphQLResult<{ messagesByConversationIdAndCreatedAt: { items: any[]; nextToken?: string } }>;
+        }
+      }) as GraphQLResult<{ messagesByConversationIdAndCreatedAt: { items: any[]; nextToken?: string } }>;
 
       if (result.errors) {
         console.error('❌ Error getting messages from server:', result.errors);
@@ -177,13 +182,14 @@ export class MessageService {
     try {
       console.log('🔄 Background sync for conversation:', conversationId);
       
-      const result = await API.graphql(
-        graphqlOperation(messagesByConversationIdAndCreatedAt, {
+      const result = await client.graphql({
+        query: queries.messagesByConversationIdAndCreatedAt,
+        variables: {
           conversationId,
           sortDirection: 'ASC',
           limit: 50, // Get recent messages
-        })
-      ) as GraphQLResult<{ messagesByConversationIdAndCreatedAt: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ messagesByConversationIdAndCreatedAt: { items: any[] } }>;
 
       if (!result.errors && result.data?.messagesByConversationIdAndCreatedAt?.items) {
         const serverMessages = result.data.messagesByConversationIdAndCreatedAt.items
@@ -204,9 +210,10 @@ export class MessageService {
    */
   static async getMessageById(messageId: string): Promise<Message | null> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(getMessage, { id: messageId })
-      ) as GraphQLResult<{ getMessage: any }>;
+      const result = await client.graphql({
+        query: queries.getMessage,
+        variables: { id: messageId }
+      }) as GraphQLResult<{ getMessage: any }>;
 
       if (result.errors || !result.data?.getMessage) {
         return null;
@@ -233,9 +240,10 @@ export class MessageService {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await API.graphql(
-        graphqlOperation(updateMessage, { input: updateInput })
-      ) as GraphQLResult<{ updateMessage: any }>;
+      const result = await client.graphql({
+        query: mutations.updateMessage,
+        variables: { input: updateInput }
+      }) as GraphQLResult<{ updateMessage: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to update message');
@@ -254,9 +262,10 @@ export class MessageService {
    */
   static async deleteMessage(messageId: string): Promise<void> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(deleteMessage, { input: { id: messageId } })
-      ) as GraphQLResult<{ deleteMessage: any }>;
+      const result = await client.graphql({
+        query: mutations.deleteMessage,
+        variables: { input: { id: messageId } }
+      }) as GraphQLResult<{ deleteMessage: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to delete message');
@@ -273,13 +282,14 @@ export class MessageService {
    */
   static async getMessagesBySender(senderId: string, limit?: number): Promise<Message[]> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(messagesBySenderIdAndCreatedAt, {
+      const result = await client.graphql({
+        query: queries.messagesBySenderIdAndCreatedAt,
+        variables: {
           senderId,
           sortDirection: 'DESC',
           limit: limit || 20,
-        })
-      ) as GraphQLResult<{ messagesBySenderIdAndCreatedAt: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ messagesBySenderIdAndCreatedAt: { items: any[] } }>;
 
       if (result.errors) {
         console.error('Error getting messages by sender:', result.errors);
@@ -310,8 +320,9 @@ export class MessageService {
     try {
       const { updateConversation } = await import('../graphql/mutations');
       
-      await API.graphql(
-        graphqlOperation(updateConversation, {
+      await client.graphql({
+        query: updateConversation,
+        variables: {
           input: {
             id: conversationId,
             lastMessage,
@@ -319,8 +330,8 @@ export class MessageService {
             lastMessageAt: timestamp,
             updatedAt: new Date().toISOString(),
           }
-        })
-      );
+        }
+      });
     } catch (error) {
       console.error('Error updating conversation last message:', error);
       // Don't throw error for this update
@@ -388,14 +399,15 @@ export class MessageService {
           }
 
           // Try to send the message
-          const result = await API.graphql(
-            graphqlOperation(createMessage, { 
+          const result = await client.graphql({
+            query: mutations.createMessage,
+            variables: { 
               input: {
                 ...pending.message,
                 metadata: pending.message.metadata ? JSON.stringify(pending.message.metadata) : null,
               }
-            })
-          ) as GraphQLResult<{ createMessage: any }>;
+            }
+          }) as GraphQLResult<{ createMessage: any }>;
 
           if (result.errors) {
             throw new Error(result.errors[0]?.message || 'Failed to sync message');

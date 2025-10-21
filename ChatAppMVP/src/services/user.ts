@@ -1,9 +1,12 @@
-// User Profile Service - manages user data with GraphQL API
-import { API, graphqlOperation } from 'aws-amplify';
+// User Profile Service - manages user data with GraphQL API (Amplify v6)
+import { generateClient } from 'aws-amplify/api';
 import { GraphQLResult } from '@aws-amplify/api-graphql';
 import { User, UserStatus } from '../types';
-import { createUser, updateUser, deleteUser } from '../graphql/mutations';
-import { getUser, getUserByEmail, getUserByUsername, listUsers } from '../graphql/queries';
+import * as mutations from '../graphql/mutations';
+import * as queries from '../graphql/queries';
+
+// Create GraphQL client
+const client = generateClient();
 
 export interface CreateUserInput {
   username: string;
@@ -43,9 +46,10 @@ export class UserService {
         lastSeen: new Date().toISOString(),
       };
 
-      const result = await API.graphql(
-        graphqlOperation(createUser, { input: userInput })
-      ) as GraphQLResult<{ createUser: any }>;
+      const result = await client.graphql({
+        query: mutations.createUser,
+        variables: { input: userInput }
+      }) as GraphQLResult<{ createUser: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to create user');
@@ -64,9 +68,10 @@ export class UserService {
    */
   static async getUserById(userId: string): Promise<User | null> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(getUser, { id: userId })
-      ) as GraphQLResult<{ getUser: any }>;
+      const result = await client.graphql({
+        query: queries.getUser,
+        variables: { id: userId }
+      }) as GraphQLResult<{ getUser: any }>;
 
       if (result.errors) {
         console.error('Error getting user:', result.errors);
@@ -90,9 +95,10 @@ export class UserService {
    */
   static async getUserByEmail(email: string): Promise<User | null> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(getUserByEmail, { email })
-      ) as GraphQLResult<{ getUserByEmail: { items: any[] } }>;
+      const result = await client.graphql({
+        query: queries.getUserByEmail,
+        variables: { email }
+      }) as GraphQLResult<{ getUserByEmail: { items: any[] } }>;
 
       if (result.errors) {
         console.error('Error getting user by email:', result.errors);
@@ -117,9 +123,10 @@ export class UserService {
    */
   static async getUserByUsername(username: string): Promise<User | null> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(getUserByUsername, { username })
-      ) as GraphQLResult<{ getUserByUsername: { items: any[] } }>;
+      const result = await client.graphql({
+        query: queries.getUserByUsername,
+        variables: { username }
+      }) as GraphQLResult<{ getUserByUsername: { items: any[] } }>;
 
       if (result.errors) {
         console.error('Error getting user by username:', result.errors);
@@ -152,9 +159,10 @@ export class UserService {
         ...(input.lastSeen && { lastSeen: input.lastSeen }),
       };
 
-      const result = await API.graphql(
-        graphqlOperation(updateUser, { input: updateInput })
-      ) as GraphQLResult<{ updateUser: any }>;
+      const result = await client.graphql({
+        query: mutations.updateUser,
+        variables: { input: updateInput }
+      }) as GraphQLResult<{ updateUser: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to update user');
@@ -207,17 +215,20 @@ export class UserService {
       let result: GraphQLResult<any>;
 
       if (params.email) {
-        result = await API.graphql(
-          graphqlOperation(getUserByEmail, { email: params.email })
-        ) as GraphQLResult<{ getUserByEmail: { items: any[] } }>;
+        result = await client.graphql({
+          query: queries.getUserByEmail,
+          variables: { email: params.email }
+        }) as GraphQLResult<{ getUserByEmail: { items: any[] } }>;
       } else if (params.username) {
-        result = await API.graphql(
-          graphqlOperation(getUserByUsername, { username: params.username })
-        ) as GraphQLResult<{ getUserByUsername: { items: any[] } }>;
+        result = await client.graphql({
+          query: queries.getUserByUsername,
+          variables: { username: params.username }
+        }) as GraphQLResult<{ getUserByUsername: { items: any[] } }>;
       } else {
-        result = await API.graphql(
-          graphqlOperation(listUsers, { limit: params.limit || 10 })
-        ) as GraphQLResult<{ listUsers: { items: any[] } }>;
+        result = await client.graphql({
+          query: queries.listUsers,
+          variables: { limit: params.limit || 10 }
+        }) as GraphQLResult<{ listUsers: { items: any[] } }>;
       }
 
       if (result.errors) {
@@ -244,9 +255,10 @@ export class UserService {
    */
   static async deleteUserProfile(userId: string): Promise<void> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(deleteUser, { input: { id: userId } })
-      ) as GraphQLResult<{ deleteUser: any }>;
+      const result = await client.graphql({
+        query: mutations.deleteUser,
+        variables: { input: { id: userId } }
+      }) as GraphQLResult<{ deleteUser: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to delete user');
@@ -304,9 +316,10 @@ export class UserService {
    */
   static async listUsers(limit: number = 50): Promise<User[]> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(listUsers, { limit })
-      ) as GraphQLResult<{ listUsers: { items: any[] } }>;
+      const result = await client.graphql({
+        query: queries.listUsers,
+        variables: { limit }
+      }) as GraphQLResult<{ listUsers: { items: any[] } }>;
 
       if (result.errors) {
         console.error('Error listing users:', result.errors);

@@ -1,23 +1,14 @@
-// Conversation Service - manages conversations and participants
-import { API, graphqlOperation } from 'aws-amplify';
+// Conversation Service - manages conversations and participants (Amplify v6)
+import { generateClient } from 'aws-amplify/api';
 import { GraphQLResult } from '@aws-amplify/api-graphql';
 import { Conversation, ConversationRole } from '../types';
-import { 
-  createConversation, 
-  updateConversation, 
-  deleteConversation,
-  createConversationParticipant,
-  updateConversationParticipant,
-  deleteConversationParticipant
-} from '../graphql/mutations';
-import { 
-  getConversation, 
-  listConversations,
-  conversationParticipantsByUserIdAndConversationId,
-  conversationParticipantsByConversationIdAndUserId
-} from '../graphql/queries';
+import * as mutations from '../graphql/mutations';
+import * as queries from '../graphql/queries';
 import { generateUniqueId } from '../utils';
 import CacheService from './cache';
+
+// Create GraphQL client
+const client = generateClient();
 
 export interface CreateConversationInput {
   participants: string[]; // Array of user IDs
@@ -65,9 +56,10 @@ export class ConversationService {
         updatedAt: new Date().toISOString(),
       };
 
-      const conversationResult = await API.graphql(
-        graphqlOperation(createConversation, { input: conversationInput })
-      ) as GraphQLResult<{ createConversation: any }>;
+      const conversationResult = await client.graphql({
+        query: mutations.createConversation,
+        variables: { input: conversationInput }
+      }) as GraphQLResult<{ createConversation: any }>;
 
       if (conversationResult.errors) {
         throw new Error(conversationResult.errors[0]?.message || 'Failed to create conversation');
@@ -97,9 +89,10 @@ export class ConversationService {
    */
   static async getConversationById(conversationId: string): Promise<Conversation | null> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(getConversation, { id: conversationId })
-      ) as GraphQLResult<{ getConversation: any }>;
+      const result = await client.graphql({
+        query: queries.getConversation,
+        variables: { id: conversationId }
+      }) as GraphQLResult<{ getConversation: any }>;
 
       if (result.errors || !result.data?.getConversation) {
         return null;
@@ -146,12 +139,13 @@ export class ConversationService {
   static async fetchConversationsFromServer(userId: string): Promise<Conversation[]> {
     try {
       // Get all conversation participants for this user
-      const result = await API.graphql(
-        graphqlOperation(conversationParticipantsByUserIdAndConversationId, {
+      const result = await client.graphql({
+        query: queries.conversationParticipantsByUserIdAndConversationId,
+        variables: {
           userId,
           sortDirection: 'DESC',
-        })
-      ) as GraphQLResult<{ conversationParticipantsByUserIdAndConversationId: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ conversationParticipantsByUserIdAndConversationId: { items: any[] } }>;
 
       if (result.errors) {
         console.error('❌ Error getting user conversations from server:', result.errors);
@@ -211,9 +205,10 @@ export class ConversationService {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await API.graphql(
-        graphqlOperation(updateConversation, { input: updateInput })
-      ) as GraphQLResult<{ updateConversation: any }>;
+      const result = await client.graphql({
+        query: mutations.updateConversation,
+        variables: { input: updateInput }
+      }) as GraphQLResult<{ updateConversation: any }>;
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message || 'Failed to update conversation');
@@ -242,9 +237,10 @@ export class ConversationService {
         notifications: true,
       };
 
-      const result = await API.graphql(
-        graphqlOperation(createConversationParticipant, { input: participantInput })
-      );
+      const result = await client.graphql({
+        query: mutations.createConversationParticipant,
+        variables: { input: participantInput }
+      });
 
       if ((result as any).errors) {
         throw new Error((result as any).errors[0]?.message || 'Failed to add participant');
@@ -262,12 +258,13 @@ export class ConversationService {
   static async removeParticipantFromConversation(conversationId: string, userId: string): Promise<void> {
     try {
       // Get participant record
-      const participantResult = await API.graphql(
-        graphqlOperation(conversationParticipantsByConversationIdAndUserId, {
+      const participantResult = await client.graphql({
+        query: queries.conversationParticipantsByConversationIdAndUserId,
+        variables: {
           conversationId,
           userId: { eq: userId }
-        })
-      ) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
 
       const participants = participantResult.data?.conversationParticipantsByConversationIdAndUserId?.items || [];
       
@@ -275,14 +272,15 @@ export class ConversationService {
         const participant = participants[0];
         
         // Update participant with left timestamp
-        await API.graphql(
-          graphqlOperation(updateConversationParticipant, {
+        await client.graphql({
+          query: mutations.updateConversationParticipant,
+          variables: {
             input: {
               id: participant.id,
               leftAt: new Date().toISOString(),
             }
-          })
-        );
+          }
+        });
       }
       
     } catch (error: any) {
@@ -296,12 +294,13 @@ export class ConversationService {
    */
   static async isUserInConversation(conversationId: string, userId: string): Promise<boolean> {
     try {
-      const result = await API.graphql(
-        graphqlOperation(conversationParticipantsByConversationIdAndUserId, {
+      const result = await client.graphql({
+        query: queries.conversationParticipantsByConversationIdAndUserId,
+        variables: {
           conversationId,
           userId: { eq: userId }
-        })
-      ) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
 
       const participants = result.data?.conversationParticipantsByConversationIdAndUserId?.items || [];
       
@@ -352,27 +351,29 @@ export class ConversationService {
    */
   static async updateUnreadCount(conversationId: string, userId: string, unreadCount: number): Promise<void> {
     try {
-      const participantResult = await API.graphql(
-        graphqlOperation(conversationParticipantsByConversationIdAndUserId, {
+      const participantResult = await client.graphql({
+        query: queries.conversationParticipantsByConversationIdAndUserId,
+        variables: {
           conversationId,
           userId: { eq: userId }
-        })
-      ) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
+        }
+      }) as GraphQLResult<{ conversationParticipantsByConversationIdAndUserId: { items: any[] } }>;
 
       const participants = participantResult.data?.conversationParticipantsByConversationIdAndUserId?.items || [];
       
       if (participants.length > 0) {
         const participant = participants[0];
         
-        await API.graphql(
-          graphqlOperation(updateConversationParticipant, {
+        await client.graphql({
+          query: mutations.updateConversationParticipant,
+          variables: {
             input: {
               id: participant.id,
               unreadCount,
               lastReadAt: new Date().toISOString(),
             }
-          })
-        );
+          }
+        });
       }
       
     } catch (error) {

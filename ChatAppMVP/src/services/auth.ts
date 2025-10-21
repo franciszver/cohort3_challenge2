@@ -1,5 +1,18 @@
-// Authentication service using AWS Amplify Cognito
-import { Auth, Hub } from 'aws-amplify';
+// Authentication service using AWS Amplify Cognito v6
+import { 
+  signIn as amplifySignIn,
+  signUp as amplifySignUp,
+  signOut as amplifySignOut,
+  confirmSignUp,
+  resendSignUpCode,
+  resetPassword,
+  confirmResetPassword,
+  getCurrentUser as amplifyGetCurrentUser,
+  fetchUserAttributes,
+  updateUserAttributes as amplifyUpdateUserAttributes,
+  fetchAuthSession
+} from '@aws-amplify/auth';
+import { Hub } from '@aws-amplify/core';
 import { User } from '../types';
 import UserService from './user';
 
@@ -42,27 +55,36 @@ export class AuthService {
    */
   static async signIn(params: SignInParams): Promise<User> {
     try {
-      const cognitoUser = await Auth.signIn(params.username, params.password);
+      const { isSignedIn, nextStep } = await amplifySignIn({
+        username: params.username,
+        password: params.password
+      });
       
       // Handle different sign-in scenarios
-      if (cognitoUser.challengeName === 'NEW_PASSWORD_REQUIRED') {
+      if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
         throw {
           code: 'NEW_PASSWORD_REQUIRED',
-          message: 'New password required',
-          cognitoUser
+          message: 'New password required'
         };
       }
       
-      if (cognitoUser.challengeName === 'MFA_SETUP') {
+      if (nextStep.signInStep === 'CONTINUE_SIGN_IN_WITH_MFA_SETUP') {
         throw {
           code: 'MFA_SETUP',
-          message: 'MFA setup required',
-          cognitoUser
+          message: 'MFA setup required'
+        };
+      }
+
+      if (!isSignedIn) {
+        throw {
+          code: 'SignInIncomplete',
+          message: 'Sign in not completed'
         };
       }
 
       // Get user attributes
-      const userAttributes = await Auth.currentUserInfo();
+      const cognitoUser = await amplifyGetCurrentUser();
+      const userAttributes = await fetchUserAttributes();
       
       return AuthService.mapCognitoUserToUser(cognitoUser, userAttributes);
       
@@ -77,19 +99,21 @@ export class AuthService {
    */
   static async signUp(params: SignUpParams): Promise<{ userSub: string; codeDeliveryDetails: any }> {
     try {
-      const { user } = await Auth.signUp({
+      const { isSignUpComplete, userId, nextStep } = await amplifySignUp({
         username: params.email, // Use email as username
         password: params.password,
-        attributes: {
-          email: params.email,
-          name: params.displayName,
-          preferred_username: params.username,
-        },
+        options: {
+          userAttributes: {
+            email: params.email,
+            name: params.displayName,
+            preferred_username: params.username,
+          }
+        }
       });
 
       return {
-        userSub: user.getUsername(),
-        codeDeliveryDetails: user.codeDeliveryDetails,
+        userSub: userId || '',
+        codeDeliveryDetails: nextStep.codeDeliveryDetails,
       };
       
     } catch (error: any) {
@@ -103,7 +127,10 @@ export class AuthService {
    */
   static async confirmSignUp(params: ConfirmSignUpParams): Promise<void> {
     try {
-      await Auth.confirmSignUp(params.username, params.code);
+      await confirmSignUp({
+        username: params.username,
+        confirmationCode: params.code
+      });
       
       // After successful verification, we don't need to create profile here
       // as it will be created in getCurrentUser() when they sign in
@@ -119,7 +146,7 @@ export class AuthService {
    */
   static async resendSignUpCode(username: string): Promise<any> {
     try {
-      return await Auth.resendSignUp(username);
+      return await resendSignUpCode({ username });
     } catch (error: any) {
       console.error('ResendSignUp error:', error);
       throw AuthService.mapAuthError(error);
@@ -131,7 +158,7 @@ export class AuthService {
    */
   static async signOut(): Promise<void> {
     try {
-      await Auth.signOut();
+      await amplifySignOut();
     } catch (error: any) {
       console.error('SignOut error:', error);
       throw AuthService.mapAuthError(error);
@@ -143,8 +170,8 @@ export class AuthService {
    */
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const cognitoUser = await Auth.currentAuthenticatedUser();
-      const userAttributes = await Auth.currentUserInfo();
+      const cognitoUser = await amplifyGetCurrentUser();
+      const userAttributes = await fetchUserAttributes();
       
       // Ensure user profile exists in DynamoDB
       const user = await UserService.ensureUserProfile(cognitoUser, userAttributes);
@@ -162,7 +189,7 @@ export class AuthService {
    */
   static async forgotPassword(params: ForgotPasswordParams): Promise<any> {
     try {
-      return await Auth.forgotPassword(params.username);
+      return await resetPassword({ username: params.username });
     } catch (error: any) {
       console.error('ForgotPassword error:', error);
       throw AuthService.mapAuthError(error);
@@ -174,7 +201,11 @@ export class AuthService {
    */
   static async forgotPasswordSubmit(params: ResetPasswordParams): Promise<void> {
     try {
-      await Auth.forgotPasswordSubmit(params.username, params.code, params.newPassword);
+      await confirmResetPassword({
+        username: params.username,
+        confirmationCode: params.code,
+        newPassword: params.newPassword
+      });
     } catch (error: any) {
       console.error('ForgotPasswordSubmit error:', error);
       throw AuthService.mapAuthError(error);
@@ -186,8 +217,7 @@ export class AuthService {
    */
   static async updateUserAttributes(attributes: Record<string, string>): Promise<void> {
     try {
-      const user = await Auth.currentAuthenticatedUser();
-      await Auth.updateUserAttributes(user, attributes);
+      await amplifyUpdateUserAttributes({ userAttributes: attributes });
     } catch (error: any) {
       console.error('UpdateUserAttributes error:', error);
       throw AuthService.mapAuthError(error);
@@ -199,7 +229,7 @@ export class AuthService {
    */
   static async getCurrentSession(): Promise<any> {
     try {
-      return await Auth.currentSession();
+      return await fetchAuthSession();
     } catch (error) {
       return null;
     }
@@ -210,7 +240,7 @@ export class AuthService {
    */
   static async isAuthenticated(): Promise<boolean> {
     try {
-      await Auth.currentAuthenticatedUser();
+      await amplifyGetCurrentUser();
       return true;
     } catch (error) {
       return false;
@@ -220,19 +250,17 @@ export class AuthService {
   /**
    * Map Cognito user to our User type
    */
-  private static mapCognitoUserToUser(cognitoUser: any, userInfo: any): User {
-    const attributes = userInfo?.attributes || {};
-    
+  private static mapCognitoUserToUser(cognitoUser: any, userAttributes: any): User {
     return {
-      id: cognitoUser.username || userInfo?.id,
-      username: attributes.preferred_username || attributes.email || cognitoUser.username,
-      email: attributes.email,
-      displayName: attributes.name || attributes.preferred_username,
-      avatar: attributes.picture,
+      id: cognitoUser.userId || cognitoUser.username,
+      username: userAttributes.preferred_username || userAttributes.email || cognitoUser.username,
+      email: userAttributes.email,
+      displayName: userAttributes.name || userAttributes.preferred_username,
+      avatar: userAttributes.picture,
       status: 'ONLINE', // Default status
       lastSeen: new Date().toISOString(),
-      createdAt: attributes.created_at || new Date().toISOString(),
-      updatedAt: attributes.updated_at || new Date().toISOString(),
+      createdAt: userAttributes.created_at || new Date().toISOString(),
+      updatedAt: userAttributes.updated_at || new Date().toISOString(),
     };
   }
 
