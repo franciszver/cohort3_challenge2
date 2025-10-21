@@ -451,7 +451,7 @@ npx expo prebuild --clean
 
 **Token registration fails**
 - Verify `eas.json` has correct `projectId`
-- Ensure app is built with `expo-notifications` plugin
+- Ensure AWS push configuration is set (SNS/Pinpoint) before testing
 - Check `app.config.js` plugins section
 
 ### AWS/AppSync Issues

@@ -1,6 +1,6 @@
 import { ResourcesConfig } from '@aws-amplify/core';
 import Constants from 'expo-constants';
-
+console.log(Constants.systemVersion);
 const amplifyConfig: ResourcesConfig = {
   Auth: {
     Cognito: {

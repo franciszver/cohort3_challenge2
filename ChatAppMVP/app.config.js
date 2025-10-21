@@ -10,13 +10,7 @@ module.exports = {
     newArchEnabled: false,
     plugins: [
       "expo-dev-client",
-      [
-        "expo-notifications",
-        {
-          icon: "./assets/icon.png",
-          color: "#007AFF"
-        }
-      ],
+      
           "expo-asset",
       "expo-image-picker"
     ],

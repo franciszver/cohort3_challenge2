@@ -109,7 +109,7 @@ npx expo run:android
 
 ### **Key Dependencies**
 - `expo-dev-client` - Custom development builds
-- `expo-notifications` - Push notifications
+- Push notifications powered by AWS (SNS/Pinpoint). Expo Notifications removed.
 - `@react-native-async-storage/async-storage` - Local storage
 - `@react-native-community/netinfo` - Network monitoring
 - `react-native-get-random-values` - Crypto polyfill

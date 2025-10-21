@@ -1,21 +1,16 @@
 {
   "expo": {
     "name": "ChatAppMVP",
-    "slug": "ChatAppMVP",
+    "slug": "chatappmvp",
     "version": "1.0.0",
+    "main": "index.ts",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "plugins": [
       "expo-dev-client",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#007AFF"
-        }
-      ],
+      
       "expo-image-picker"
     ],
     "extra": {
