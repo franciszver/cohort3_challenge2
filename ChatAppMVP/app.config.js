@@ -1,0 +1,64 @@
+module.exports = {
+  expo: {
+    name: "ChatAppMVP",
+    slug: "ChatAppMVP",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "light",
+    // Disable new architecture for better compatibility with Expo modules
+    newArchEnabled: false,
+    plugins: [
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#007AFF"
+        }
+      ],
+      "expo-image-picker"
+    ],
+    extra: {
+      COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
+      COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID,
+      COGNITO_IDENTITY_POOL_ID: process.env.COGNITO_IDENTITY_POOL_ID,
+      APPSYNC_ENDPOINT: process.env.APPSYNC_ENDPOINT,
+      AWS_REGION: process.env.AWS_REGION || 'us-east-1',
+      eas: {
+        projectId: "fe3c4936-77c1-4209-a693-95f1d0cd9be7"
+      }
+    },
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff"
+    },
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.ciscodg.ChatAppMVP"
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff"
+      },
+      // Disable edge-to-edge for better compatibility
+      edgeToEdgeEnabled: false,
+      predictiveBackGestureEnabled: false,
+      permissions: [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      package: "com.ciscodg.ChatAppMVP"
+    },
+    web: {
+      favicon: "./assets/favicon.png"
+    }
+  }
+};
+

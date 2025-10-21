@@ -9,6 +9,8 @@
     "web": "expo start --web",
     "dev:android": "expo start --dev-client --android",
     "dev:ios": "expo start --dev-client --ios",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
     "build:dev:android": "eas build --profile development --platform android",
     "build:preview:android": "eas build --profile preview --platform android",
     "test": "jest",
